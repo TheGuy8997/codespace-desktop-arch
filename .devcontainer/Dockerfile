@@ -1,25 +1,35 @@
-# Use the base image
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
+# Use Arch-based KasmVNC base image instead of Ubuntu
+FROM ghcr.io/linuxserver/baseimage-kasmvnc:arch-version-2025-07-12
 
-# Enable privileged mode
+# Switch to root user for package installs
 USER root
 
-# Set up environment variables to suppress interactive prompts
+# Update system packages (Arch uses pacman)
+RUN pacman -Syu --noconfirm
+
+# Install useful tools and desktop environments
+RUN pacman -S --noconfirm \
+    cinnamon \
+    xfce4 \
+    xfce4-goodies \
+    firefox \
+    htop \
+    python \
+    python-pip \
+    dbus \
+    tigervnc \
+    git \
+    nano \
+    sudo
+
+# Clean up to keep image small
+RUN pacman -Scc --noconfirm
+
+# Set environment variables for non-interactive installs
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Preconfigure the keyboard layout
-RUN echo 'keyboard-configuration keyboard-configuration/layoutcode string us' | debconf-set-selections && \
-    echo 'keyboard-configuration keyboard-configuration/layout select English (US)' | debconf-set-selections
+# Expose default VNC and noVNC ports
+EXPOSE 5900 6901
 
-# Install necessary packages
-RUN apt-get update && \
-    apt-get upgrade -y && \
-	# Installing cinnamon and vnc. Installing xfce4 solves grey screen issue
-    apt-get install -y tigervnc-standalone-server cinnamon-desktop-environment dbus-x11 xfce4 xfce4-goodies novnc python3-websockify python3-numpy python3-pip pipx cabextract tightvncserver htop software-properties-common && \
-	# Remove dummy Firefox
-    apt-get remove -y firefox && \ 
-	# Install Firefox without Snap
-	echo 'Package: firefox*\nPin: release o=LP-PPA-mozillateam\nPin-Priority: 1001' | tee /etc/apt/preferences.d/Mozilla && \
-	add-apt-repository ppa:mozillateam/ppa && \
-	apt-get update && \
-    apt-get install -y firefox
+# Default start command for KasmVNC base image
+CMD ["/init"]
